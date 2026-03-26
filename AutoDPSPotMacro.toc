@@ -2,8 +2,8 @@
 ## Title: |cff00ccffAuto DPS Pot Macro|r
 ## Notes: Automatically morphs your Flask and Potion macros to always use your best available quality.
 ## Author: I_AM_T3X 
-## Version: 1.0.0
-## SavedVariables: ADPMDB
+## Version: 1.0.1
+## SavedVariablesPerCharacter: ADPMCharDB
 ## IconTexture: Interface\Icons\INV_Alchemy_Potion_05
 
 ## OptionalDeps: LibDBIcon-1.0

@@ -2,26 +2,8 @@
 -- Midnight flask definitions.
 -- Quality tiers per flask: { Silver ID, Gold ID }  (index 1 = lowest, last = highest)
 -- Fleeting versions come from the Cauldron of Sin'dorei Flasks placed by Alchemists.
---
--- Item IDs (verified via Wowhead live / beta):
---   Flask of Thalassian Resistance  (Versatility)    Gold 241320  Silver 241321  Fleeting: 245926, 245927
---   Flask of the Magisters          (Mastery)         Gold 241322  Silver 241323  Fleeting: 245932, 245933
---   Flask of the Blood Knights      (Haste)           Gold 241324  Silver 241325  Fleeting: 245930, 245931
---   Flask of the Shattered Sun      (Critical Strike) Gold 241326  Silver 241327  Fleeting: 245928, 245929
---
--- Priority order applied when choosing which ID to put in the macro:
---   Gold (fleeting) > Silver (fleeting) > Gold (crafted) > Silver (crafted)
 
 local addonName, adpm = ...
-
--- Each definition is an ordered entry; order here controls display order in the UI.
--- Fields:
---   key       string  saved-variable identifier (stable across updates)
---   label     string  displayed name in UI
---   stat      string  primary stat granted (shown in UI)
---   tiers     array   {craftedIDs={Silver,Gold}, fleetingIDs={Silver,Gold}}
---                     NOTE: In Midnight, Gold has the LOWER item ID number.
---                     fleetingIDs are checked before craftedIDs.
 
 adpm.flaskDefs = {
     {
@@ -58,38 +40,32 @@ adpm.flaskDefs = {
     },
 }
 
--- Register every ID as a PPItem
 for _, def in ipairs(adpm.flaskDefs) do
     for _, id in ipairs(def.craftedIDs)  do adpm.RegisterItem(id) end
     for _, id in ipairs(def.fleetingIDs) do adpm.RegisterItem(id) end
 end
 
---- Returns the best available flask item ID for the currently selected flask type,
---- or nil if none is owned or none is selected.
---- Priority: Gold (fleeting) > Silver (fleeting) > Gold (crafted) > Silver (crafted)
 function adpm.GetBestFlaskID()
-    local selectedKey = ADPMDB.selectedFlask
+    -- CHANGED: ADPMDB -> ADPMCharDB
+    local selectedKey = ADPMCharDB.selectedFlask
     if not selectedKey then return nil end
 
     for _, def in ipairs(adpm.flaskDefs) do
         if def.key == selectedKey then
-            -- Check fleeting tiers highest-to-lowest first
             for i = #def.fleetingIDs, 1, -1 do
                 local item = adpm.items[def.fleetingIDs[i]]
                 if item and item:IsOwned() then return item:GetID() end
             end
-            -- Then crafted tiers highest-to-lowest
             for i = #def.craftedIDs, 1, -1 do
                 local item = adpm.items[def.craftedIDs[i]]
                 if item and item:IsOwned() then return item:GetID() end
             end
-            return nil  -- selected type found but none owned
+            return nil
         end
     end
     return nil
 end
 
---- Returns the flask def table for a given key, or nil.
 function adpm.GetFlaskDef(key)
     for _, def in ipairs(adpm.flaskDefs) do
         if def.key == key then return def end

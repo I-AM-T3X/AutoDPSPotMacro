@@ -1,12 +1,9 @@
 -- UI\MinimapButton.lua
--- LibDBIcon-1.0 implementation for standard minimap button behavior.
--- Provides: draggable positioning, minimap snapping, tooltip, click handlers.
 
 local addonName, adpm = ...
 
 local ICON_TEXTURE = "Interface\\Icons\\INV_Alchemy_Potion_05"
 
--- Check for LibDBIcon-1.0
 local hasLibDBIcon, LibDBIcon = pcall(LibStub, "LibDBIcon-1.0")
 local hasLDB, LDB = pcall(LibStub, "LibDataBroker-1.1")
 
@@ -21,12 +18,10 @@ end
 
 function adpm.BuildMinimapButton()
     if not hasLibDBIcon or not hasLDB then
-        -- Fallback: create a simple standalone button if libs missing
         adpm.BuildFallbackMinimapButton()
         return
     end
 
-    -- Create LibDataBroker data object
     local ldb = LDB:NewDataObject("AutoDPSPotMacro", {
         type = "launcher",
         text = "Auto DPS Pot Macro",
@@ -47,8 +42,9 @@ function adpm.BuildMinimapButton()
             tooltip:AddLine("Right-click: Print status", 0.8, 0.8, 0.8)
             tooltip:AddLine(" ")
             
-            local flaskDef  = ADPMDB.selectedFlask  and adpm.GetFlaskDef(ADPMDB.selectedFlask)
-            local potionDef = ADPMDB.selectedPotion and adpm.GetPotionDef(ADPMDB.selectedPotion)
+            -- CHANGED: ADPMDB -> ADPMCharDB
+            local flaskDef  = ADPMCharDB.selectedFlask  and adpm.GetFlaskDef(ADPMCharDB.selectedFlask)
+            local potionDef = ADPMCharDB.selectedPotion and adpm.GetPotionDef(ADPMCharDB.selectedPotion)
             
             tooltip:AddDoubleLine(
                 "Flask:",
@@ -61,56 +57,52 @@ function adpm.BuildMinimapButton()
         end,
     })
 
-    -- Register with LibDBIcon (handles positioning, dragging, etc.)
-    LibDBIcon:Register("AutoDPSPotMacro", ldb, ADPMDB.minimap)
+    -- CHANGED: ADPMDB -> ADPMCharDB
+    LibDBIcon:Register("AutoDPSPotMacro", ldb, ADPMCharDB.minimap)
     
-    -- Apply initial visibility
-    if ADPMDB.minimap.hide then
+    -- CHANGED: ADPMDB -> ADPMCharDB
+    if ADPMCharDB.minimap.hide then
         LibDBIcon:Hide("AutoDPSPotMacro")
     end
 end
 
--- Fallback button if LibDBIcon is not available
 function adpm.BuildFallbackMinimapButton()
     local btn = CreateFrame("Button", "AutoDPSPotMacroMinimapBtn", Minimap)
     btn:SetSize(32, 32)
     btn:SetFrameStrata("MEDIUM")
     btn:SetFrameLevel(8)
 
-    -- Background circle
     local bg = btn:CreateTexture(nil, "BACKGROUND")
     bg:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
     bg:SetAllPoints()
 
-    -- Icon
     local icon = btn:CreateTexture(nil, "ARTWORK")
     icon:SetTexture(ICON_TEXTURE)
     icon:SetSize(20, 20)
     icon:SetPoint("CENTER")
 
-    -- Highlight
     local hl = btn:CreateTexture(nil, "HIGHLIGHT")
     hl:SetTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
     hl:SetAllPoints()
 
-    -- Position
     local MINIMAP_RADIUS = 80
     local function updatePosition()
-        local angle = math.rad(ADPMDB.minimap.minimapPos or 220)
+        -- CHANGED: ADPMDB -> ADPMCharDB
+        local angle = math.rad(ADPMCharDB.minimap.minimapPos or 220)
         btn:SetPoint("CENTER", Minimap, "CENTER",
             MINIMAP_RADIUS * math.cos(angle),
             MINIMAP_RADIUS * math.sin(angle))
     end
 
-    -- Tooltip
     btn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:SetText("|cff00ccffAuto DPS Pot Macro|r", 1, 1, 1)
         GameTooltip:AddLine("Left-click: Open options", 0.8, 0.8, 0.8)
         GameTooltip:AddLine("Right-click: Print status", 0.8, 0.8, 0.8)
         GameTooltip:AddLine(" ")
-        local flaskDef  = ADPMDB.selectedFlask  and adpm.GetFlaskDef(ADPMDB.selectedFlask)
-        local potionDef = ADPMDB.selectedPotion and adpm.GetPotionDef(ADPMDB.selectedPotion)
+        -- CHANGED: ADPMDB -> ADPMCharDB
+        local flaskDef  = ADPMCharDB.selectedFlask  and adpm.GetFlaskDef(ADPMCharDB.selectedFlask)
+        local potionDef = ADPMCharDB.selectedPotion and adpm.GetPotionDef(ADPMCharDB.selectedPotion)
         GameTooltip:AddDoubleLine(
             "Flask:",
             flaskDef and ("|cff" .. flaskDef.color .. flaskDef.label .. "|r") or "|cffaaaaaa--none--|r",
@@ -123,7 +115,6 @@ function adpm.BuildFallbackMinimapButton()
     end)
     btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    -- Clicks
     btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     btn:SetScript("OnClick", function(self, button)
         if button == "LeftButton" then
@@ -133,7 +124,6 @@ function adpm.BuildFallbackMinimapButton()
         end
     end)
 
-    -- Drag
     btn:RegisterForDrag("LeftButton")
     btn:SetScript("OnDragStart", function(self)
         self:SetScript("OnUpdate", function()
@@ -141,7 +131,8 @@ function adpm.BuildFallbackMinimapButton()
             local cx, cy = GetCursorPosition()
             local scale = UIParent:GetEffectiveScale()
             cx, cy = cx / scale, cy / scale
-            ADPMDB.minimap.minimapPos = math.deg(math.atan2(cy - my, cx - mx))
+            -- CHANGED: ADPMDB -> ADPMCharDB
+            ADPMCharDB.minimap.minimapPos = math.deg(math.atan2(cy - my, cx - mx))
             updatePosition()
         end)
     end)
@@ -150,5 +141,6 @@ function adpm.BuildFallbackMinimapButton()
     end)
 
     updatePosition()
-    if ADPMDB.minimap.hide then btn:Hide() end
+    -- CHANGED: ADPMDB -> ADPMCharDB
+    if ADPMCharDB.minimap.hide then btn:Hide() end
 end

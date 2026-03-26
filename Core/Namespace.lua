@@ -1,11 +1,11 @@
 -- Core\Namespace.lua
 -- Defines the single addon namespace table (adpm).
 -- All other files receive this via `local addonName, adpm = ...`
--- Nothing is written to _G except ADPMDB (SavedVariables).
+-- Uses CHARACTER SPECIFIC saved variables (ADPMCharDB).
 
 local addonName, adpm = ...
 
-adpm.VERSION      = "1.0.0"
+adpm.VERSION      = "1.0.1"
 adpm.ADDON_NAME   = addonName
 adpm.MACRO_POTION = "ADPMPot"
 adpm.MACRO_FLASK  = "ADPMFlask"
@@ -21,7 +21,7 @@ adpm.items     = {}   -- [itemID] = PPItem
 adpm.flaskDefs = {}   -- ordered array of flask group definitions
 adpm.potionDefs = {}  -- ordered array of potion group definitions
 
--- Default saved-variable structure (applied once on first load)
+-- Default saved-variable structure (applied once on first load per character)
 adpm.DB_DEFAULTS = {
     selectedFlask  = nil,   -- settingsKey string or nil for "none"
     selectedPotion = nil,
@@ -33,24 +33,24 @@ adpm.DB_DEFAULTS = {
     },
 }
 
---- Merges defaults into ADPMDB without overwriting existing values.
+--- Merges defaults into ADPMCharDB without overwriting existing values.
 function adpm.InitDB()
-    if not ADPMDB then ADPMDB = {} end
+    if not ADPMCharDB then ADPMCharDB = {} end
     for k, v in pairs(adpm.DB_DEFAULTS) do
-        if ADPMDB[k] == nil then
-            ADPMDB[k] = v
+        if ADPMCharDB[k] == nil then
+            ADPMCharDB[k] = v
         end
     end
     -- Ensure minimap sub-table exists (for upgrades from old version)
-    if type(ADPMDB.minimap) ~= "table" then
+    if type(ADPMCharDB.minimap) ~= "table" then
         -- Migrate old single values if present
-        local oldHidden = ADPMDB.minimapHidden
-        local oldAngle = ADPMDB.minimapAngle
-        ADPMDB.minimap = {
+        local oldHidden = ADPMCharDB.minimapHidden
+        local oldAngle = ADPMCharDB.minimapAngle
+        ADPMCharDB.minimap = {
             hide = oldHidden or false,
             minimapPos = oldAngle or 220,
         }
-        ADPMDB.minimapHidden = nil
-        ADPMDB.minimapAngle = nil
+        ADPMCharDB.minimapHidden = nil
+        ADPMCharDB.minimapAngle = nil
     end
 end

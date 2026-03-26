@@ -1,21 +1,19 @@
 -- Core\MacroEngine.lua
 -- Responsible for creating, updating, and icon-syncing the two macros.
+-- Creates CHARACTER SPECIFIC macros.
 
 local addonName, adpm = ...
 
 local ICON_FALLBACK = "Interface\\Icons\\INV_Misc_QuestionMark"
 
--- ─── Internal helpers ─────────────────────────────────────────────────────────
-
 local function ensureMacro(name)
-    if not GetMacroInfo(name) then
-        CreateMacro(name, ICON_FALLBACK)
+    local macroID = GetMacroInfo(name)
+    if not macroID then
+        macroID = CreateMacro(name, ICON_FALLBACK, nil, true)
     end
+    return macroID
 end
 
---- Builds a /use macro body for a single item ID.
---- Uses /use so the game auto-manages the cooldown display on action bars.
---- Falls back to #showtooltip only if no item is available.
 local function buildMacroBody(itemID)
     if not itemID then
         return "#showtooltip\n"
@@ -23,19 +21,13 @@ local function buildMacroBody(itemID)
     return string.format("#showtooltip item:%d\n/use item:%d", itemID, itemID)
 end
 
---- Updates a macro's body and icon to match a given item ID.
 local function applyMacro(macroName, itemID)
-    ensureMacro(macroName)
+    local macroID = ensureMacro(macroName)
     local body = buildMacroBody(itemID)
     local icon = itemID and select(10, GetItemInfo(itemID)) or ICON_FALLBACK
-    EditMacro(macroName, macroName, icon, body)
+    EditMacro(macroID, macroName, icon, body)
 end
 
--- ─── Public API ───────────────────────────────────────────────────────────────
-
---- Recalculates the best available flask and potion, updates both macros,
---- caches the active IDs on adpm, and optionally prints a status message.
---- @param silent boolean  if true, suppresses chat output regardless of DB setting
 function adpm.UpdateMacros(silent)
     local flaskID  = adpm.GetBestFlaskID()
     local potionID = adpm.GetBestPotionID()
@@ -49,15 +41,14 @@ function adpm.UpdateMacros(silent)
     applyMacro(adpm.MACRO_FLASK,  flaskID)
     applyMacro(adpm.MACRO_POTION, potionID)
 
-    -- Notify the options panel to refresh its status row (if open)
     if adpm.RefreshStatusRow then
         adpm.RefreshStatusRow()
     end
 
-    -- Chat feedback (only on actual changes, not every bag event)
-    if not silent and ADPMDB.showChatStatus and (flaskChanged or potionChanged) then
-        local flaskDef  = flaskID  and adpm.GetFlaskDef(ADPMDB.selectedFlask)
-        local potionDef = potionID and adpm.GetPotionDef(ADPMDB.selectedPotion)
+    -- CHANGED: ADPMDB -> ADPMCharDB
+    if not silent and ADPMCharDB.showChatStatus and (flaskChanged or potionChanged) then
+        local flaskDef  = flaskID  and adpm.GetFlaskDef(ADPMCharDB.selectedFlask)
+        local potionDef = potionID and adpm.GetPotionDef(ADPMCharDB.selectedPotion)
 
         local flaskName  = flaskDef  and ("|cff" .. flaskDef.color  .. flaskDef.label  .. "|r") or "|cffaaaaaa(none)|r"
         local potionName = potionDef and ("|cff" .. potionDef.color .. potionDef.label .. "|r") or "|cffaaaaaa(none)|r"
@@ -66,10 +57,10 @@ function adpm.UpdateMacros(silent)
     end
 end
 
---- Prints the current macro status to chat regardless of settings.
 function adpm.PrintStatus()
-    local flaskDef  = ADPMDB.selectedFlask  and adpm.GetFlaskDef(ADPMDB.selectedFlask)
-    local potionDef = ADPMDB.selectedPotion and adpm.GetPotionDef(ADPMDB.selectedPotion)
+    -- CHANGED: ADPMDB -> ADPMCharDB
+    local flaskDef  = ADPMCharDB.selectedFlask  and adpm.GetFlaskDef(ADPMCharDB.selectedFlask)
+    local potionDef = ADPMCharDB.selectedPotion and adpm.GetPotionDef(ADPMCharDB.selectedPotion)
 
     local function fmt(def, activeID)
         if not def then return "|cffaaaaaa-- none selected --|r" end
