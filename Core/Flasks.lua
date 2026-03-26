@@ -10,7 +10,7 @@
 --   Flask of the Shattered Sun      (Critical Strike) Gold 241326  Silver 241327  Fleeting: 245928, 245929
 --
 -- Priority order applied when choosing which ID to put in the macro:
---   Gold (crafted) > Silver (crafted) > Gold (fleeting) > Silver (fleeting)
+--   Gold (fleeting) > Silver (fleeting) > Gold (crafted) > Silver (crafted)
 
 local addonName, adpm = ...
 
@@ -21,7 +21,7 @@ local addonName, adpm = ...
 --   stat      string  primary stat granted (shown in UI)
 --   tiers     array   {craftedIDs={Silver,Gold}, fleetingIDs={Silver,Gold}}
 --                     NOTE: In Midnight, Gold has the LOWER item ID number.
---                     craftedIDs are checked before fleetingIDs.
+--                     fleetingIDs are checked before craftedIDs.
 
 adpm.flaskDefs = {
     {
@@ -66,21 +66,21 @@ end
 
 --- Returns the best available flask item ID for the currently selected flask type,
 --- or nil if none is owned or none is selected.
---- Priority: Gold crafted > Silver crafted > Gold fleeting > Silver fleeting
+--- Priority: Gold (fleeting) > Silver (fleeting) > Gold (crafted) > Silver (crafted)
 function adpm.GetBestFlaskID()
     local selectedKey = ADPMDB.selectedFlask
     if not selectedKey then return nil end
 
     for _, def in ipairs(adpm.flaskDefs) do
         if def.key == selectedKey then
-            -- Check crafted tiers highest-to-lowest first
-            for i = #def.craftedIDs, 1, -1 do
-                local item = adpm.items[def.craftedIDs[i]]
-                if item and item:IsOwned() then return item:GetID() end
-            end
-            -- Then fleeting highest-to-lowest
+            -- Check fleeting tiers highest-to-lowest first
             for i = #def.fleetingIDs, 1, -1 do
                 local item = adpm.items[def.fleetingIDs[i]]
+                if item and item:IsOwned() then return item:GetID() end
+            end
+            -- Then crafted tiers highest-to-lowest
+            for i = #def.craftedIDs, 1, -1 do
+                local item = adpm.items[def.craftedIDs[i]]
                 if item and item:IsOwned() then return item:GetID() end
             end
             return nil  -- selected type found but none owned

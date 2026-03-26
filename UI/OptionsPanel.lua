@@ -1,33 +1,16 @@
 -- UI\OptionsPanel.lua
 -- Settings panel registered with the modern Settings API.
--- Layout:
---   ┌─────────────────────────────────────────────────┐
---   │  Auto DPS Pot Macro  (Midnight)                       │
---   │  ─────────────────────────────────────────────  │
---   │  [STATUS ROW]  Flask: xxx   Potion: yyy          │
---   │  ─────────────────────────────────────────────  │
---   │  ● Flasks  (choose one)                          │
---   │    ○ Flask of the Blood Knights  (Haste)         │
---   │    ○ Flask of the Shattered Sun  (Crit)          │
---   │    ...                                           │
---   │  ─────────────────────────────────────────────  │
---   │  ● Potions  (choose one)                         │
---   │    ○ Potion of Recklessness  (...)               │
---   │    ...                                           │
---   │  ─────────────────────────────────────────────  │
---   │  [ ] Show chat notification on macro update      │
---   │  [ ] Hide minimap button                         │
---   └─────────────────────────────────────────────────┘
+-- Uses a ScrollFrame so content never overflows regardless of how many
+-- flasks / potions are added in future.
 
 local addonName, adpm = ...
 
 -- Layout constants
 local PANEL_W    = 600
-local PANEL_H    = 580
+local SCROLL_W   = PANEL_W - 20   -- account for scrollbar
 local MARGIN     = 18
 local ROW_H      = 28
 local INDENT     = 36
-local HALF_W     = (PANEL_W - MARGIN * 2) / 2 - 8
 
 -- Radio button refs so we can set/unset them programmatically
 local flaskRadios  = {}   -- [settingsKey] = CheckButton
@@ -47,7 +30,7 @@ end
 local function addDivider(parent, y)
     local t = parent:CreateTexture(nil, "ARTWORK")
     t:SetColorTexture(0.3, 0.3, 0.3, 0.6)
-    t:SetSize(PANEL_W - MARGIN * 2, 1)
+    t:SetSize(SCROLL_W - MARGIN * 2, 1)
     t:SetPoint("TOPLEFT", parent, "TOPLEFT", MARGIN, y)
     return t
 end
@@ -57,15 +40,6 @@ local function addHeader(parent, y, text)
     local fs = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     fs:SetPoint("TOPLEFT", parent, "TOPLEFT", MARGIN, y)
     fs:SetText(text)
-    return fs
-end
-
---- Small descriptive text
-local function addSubText(parent, y, text)
-    local fs = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    fs:SetPoint("TOPLEFT", parent, "TOPLEFT", INDENT, y)
-    fs:SetText(text)
-    fs:SetTextColor(0.65, 0.65, 0.65)
     return fs
 end
 
@@ -91,10 +65,6 @@ function adpm.RefreshStatusRow()
         end
         local count = adpm.items[activeID] and adpm.items[activeID]:GetCount() or 0
 
-        -- Determine quality label by position in the tier list.
-        -- Last entry in craftedIDs = highest quality (Gold).
-        -- First entry = lowest quality (Silver).
-        -- Any ID found in fleetingIDs = Fleeting.
         local qual
         local isFleeting = false
         for _, fid in ipairs(def.fleetingIDs or {}) do
@@ -128,17 +98,14 @@ local function makeRadio(parent, x, y, prefix, key, def, radioTable, dbKey)
     local btn = CreateFrame("CheckButton", nil, parent, "UIRadioButtonTemplate")
     btn:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
 
-    -- Label (loaded async)
     local lbl = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     lbl:SetPoint("LEFT", btn, "RIGHT", 4, 0)
-    lbl:SetText(def.label)   -- default until async load
+    lbl:SetText(def.label)
 
-    -- Stat badge
     local badge = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     badge:SetPoint("LEFT", lbl, "RIGHT", 6, 0)
     badge:SetText(colorStr(def.color, "(" .. def.stat .. ")"))
 
-    -- Async name refresh
     local topID = def.craftedIDs[#def.craftedIDs]
     local pItem = adpm.items[topID]
     if pItem then
@@ -147,7 +114,6 @@ local function makeRadio(parent, x, y, prefix, key, def, radioTable, dbKey)
         end)
     end
 
-    -- Tooltip
     btn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         if topID then
@@ -163,9 +129,7 @@ local function makeRadio(parent, x, y, prefix, key, def, radioTable, dbKey)
     end)
     btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    -- Click: radio-button exclusivity
     btn:SetScript("OnClick", function(self)
-        -- Uncheck all others in the same group
         for k, other in pairs(radioTable) do
             other:SetChecked(false)
         end
@@ -182,58 +146,72 @@ end
 -- ─── Panel builder ────────────────────────────────────────────────────────────
 
 local function buildPanel()
+    -- Outer frame registered with the Settings API
     local frame = CreateFrame("Frame")
     frame.name = "Auto DPS Pot Macro"
 
-    -- ── Title ────────────────────────────────────────────────────────────────
-    local titleText = frame:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    -- ── ScrollFrame ───────────────────────────────────────────────────────────
+    local sf = CreateFrame("ScrollFrame", "ADPMScrollFrame", frame, "UIPanelScrollFrameTemplate")
+    sf:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    sf:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -26, 0)
+
+    -- The scrollable content child
+    local content = CreateFrame("Frame", "ADPMScrollContent", sf)
+    content:SetSize(SCROLL_W, 1)   -- height will grow as we add content
+    sf:SetScrollChild(content)
+
+    -- Convenience: all layout below targets `content` instead of `frame`
+    local p = content
+
+    -- ── Title ─────────────────────────────────────────────────────────────────
+    local titleText = p:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     titleText:SetPoint("TOPLEFT", MARGIN, -MARGIN)
     titleText:SetText(colorStr("00ccff", "Auto DPS Pot Macro") .. "  " .. colorStr("555555", "v" .. adpm.VERSION .. " · Midnight"))
 
     -- ── Status row ────────────────────────────────────────────────────────────
     local statusY = -MARGIN - 28
-    addDivider(frame, statusY)
+    addDivider(p, statusY)
 
-    local statusLabel = frame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    local statusLabel = p:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
     statusLabel:SetPoint("TOPLEFT", MARGIN, statusY - 8)
     statusLabel:SetText(colorStr("00ccff", ">> Current Macros"))
 
-    local flaskLabel = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local flaskLabel = p:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     flaskLabel:SetPoint("TOPLEFT", MARGIN, statusY - 24)
     flaskLabel:SetText(colorStr("888888", "Flask:"))
     flaskLabel:SetWidth(50)
 
-    statusFlaskText = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    statusFlaskText = p:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     statusFlaskText:SetPoint("LEFT", flaskLabel, "RIGHT", 4, 0)
     statusFlaskText:SetText(colorStr("888888", "—"))
 
-    local potionLabel = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    local potionLabel = p:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     potionLabel:SetPoint("TOPLEFT", MARGIN, statusY - 42)
     potionLabel:SetText(colorStr("888888", "Potion:"))
     potionLabel:SetWidth(50)
 
-    statusPotionText = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    statusPotionText = p:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     statusPotionText:SetPoint("LEFT", potionLabel, "RIGHT", 4, 0)
     statusPotionText:SetText(colorStr("888888", "—"))
 
     -- ── Flask section ─────────────────────────────────────────────────────────
     local flaskDivY = statusY - 66
-    addDivider(frame, flaskDivY)
+    addDivider(p, flaskDivY)
 
     local flaskHeaderY = flaskDivY - 12
-    addHeader(frame, flaskHeaderY, colorStr("ffcc00", "Flask") .. "  " .. colorStr("888888", "(choose one — lasts 1 hour)"))
+    addHeader(p, flaskHeaderY, colorStr("ffcc00", "Flask") .. "  " .. colorStr("888888", "(choose one — lasts 1 hour)"))
 
     local fy = flaskHeaderY - 22
     for _, def in ipairs(adpm.flaskDefs) do
-        makeRadio(frame, INDENT, fy, "Flask", def.key, def, flaskRadios, "selectedFlask")
+        makeRadio(p, INDENT, fy, "Flask", def.key, def, flaskRadios, "selectedFlask")
         fy = fy - ROW_H
     end
 
     -- None option for flasks
     do
-        local noneBtn = CreateFrame("CheckButton", nil, frame, "UIRadioButtonTemplate")
-        noneBtn:SetPoint("TOPLEFT", frame, "TOPLEFT", INDENT, fy)
-        local noneLbl = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        local noneBtn = CreateFrame("CheckButton", nil, p, "UIRadioButtonTemplate")
+        noneBtn:SetPoint("TOPLEFT", p, "TOPLEFT", INDENT, fy)
+        local noneLbl = p:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
         noneLbl:SetPoint("LEFT", noneBtn, "RIGHT", 4, 0)
         noneLbl:SetText(colorStr("888888", "None — disable flask macro"))
         noneBtn:SetScript("OnClick", function()
@@ -249,22 +227,22 @@ local function buildPanel()
 
     -- ── Potion section ────────────────────────────────────────────────────────
     local potionDivY = fy - 4
-    addDivider(frame, potionDivY)
+    addDivider(p, potionDivY)
 
     local potionHeaderY = potionDivY - 12
-    addHeader(frame, potionHeaderY, colorStr("ffcc00", "Potion") .. "  " .. colorStr("888888", "(choose one — 30s combat pot)"))
+    addHeader(p, potionHeaderY, colorStr("ffcc00", "Potion") .. "  " .. colorStr("888888", "(choose one — 30s combat pot)"))
 
     local py = potionHeaderY - 22
     for _, def in ipairs(adpm.potionDefs) do
-        makeRadio(frame, INDENT, py, "Potion", def.key, def, potionRadios, "selectedPotion")
+        makeRadio(p, INDENT, py, "Potion", def.key, def, potionRadios, "selectedPotion")
         py = py - ROW_H
     end
 
     -- None option for potions
     do
-        local noneBtn = CreateFrame("CheckButton", nil, frame, "UIRadioButtonTemplate")
-        noneBtn:SetPoint("TOPLEFT", frame, "TOPLEFT", INDENT, py)
-        local noneLbl = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        local noneBtn = CreateFrame("CheckButton", nil, p, "UIRadioButtonTemplate")
+        noneBtn:SetPoint("TOPLEFT", p, "TOPLEFT", INDENT, py)
+        local noneLbl = p:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
         noneLbl:SetPoint("LEFT", noneBtn, "RIGHT", 4, 0)
         noneLbl:SetText(colorStr("888888", "None — disable potion macro"))
         noneBtn:SetScript("OnClick", function()
@@ -280,44 +258,47 @@ local function buildPanel()
 
     -- ── Misc settings ─────────────────────────────────────────────────────────
     local miscDivY = py - 8
-    addDivider(frame, miscDivY)
+    addDivider(p, miscDivY)
 
     local miscY = miscDivY - 14
-    addHeader(frame, miscY, colorStr("888888", "Options"))
+    addHeader(p, miscY, colorStr("888888", "Options"))
 
-    -- Chat notification toggle
-    local chatCB = CreateFrame("CheckButton", nil, frame, "InterfaceOptionsCheckButtonTemplate")
-    chatCB:SetPoint("TOPLEFT", frame, "TOPLEFT", INDENT, miscY - 22)
+    local chatCB = CreateFrame("CheckButton", nil, p, "InterfaceOptionsCheckButtonTemplate")
+    chatCB:SetPoint("TOPLEFT", p, "TOPLEFT", INDENT, miscY - 22)
     chatCB.Text:SetText("Show chat notification when macros update")
     chatCB:SetChecked(ADPMDB.showChatStatus)
     chatCB:SetScript("OnClick", function(self)
         ADPMDB.showChatStatus = self:GetChecked()
     end)
 
-    -- Minimap toggle
-    local minimapCB = CreateFrame("CheckButton", nil, frame, "InterfaceOptionsCheckButtonTemplate")
-	minimapCB:SetPoint("TOPLEFT", frame, "TOPLEFT", INDENT, miscY - 50)
-	minimapCB.Text:SetText("Hide minimap button")
-	minimapCB:SetChecked(ADPMDB.minimap.hide)
-	minimapCB:SetScript("OnClick", function(self)
-    ADPMDB.minimap.hide = self:GetChecked()
-    adpm.SetMinimapButtonVisible(not ADPMDB.minimap.hide)
-	end)
+    local minimapCB = CreateFrame("CheckButton", nil, p, "InterfaceOptionsCheckButtonTemplate")
+    minimapCB:SetPoint("TOPLEFT", p, "TOPLEFT", INDENT, miscY - 50)
+    minimapCB.Text:SetText("Hide minimap button")
+    minimapCB:SetChecked(ADPMDB.minimap.hide)
+    minimapCB:SetScript("OnClick", function(self)
+        ADPMDB.minimap.hide = self:GetChecked()
+        adpm.SetMinimapButtonVisible(not ADPMDB.minimap.hide)
+    end)
 
     -- ── Footer ────────────────────────────────────────────────────────────────
-    addDivider(frame, miscY - 76)
-    local footer = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    footer:SetPoint("TOPLEFT", MARGIN, miscY - 88)
+    local footerDivY = miscY - 76
+    addDivider(p, footerDivY)
+
+    local footer = p:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    footer:SetPoint("TOPLEFT", MARGIN, footerDivY - 12)
     footer:SetText(colorStr("555555",
         "Macros: " .. adpm.MACRO_FLASK .. "  /  " .. adpm.MACRO_POTION ..
         "   ·   /adpm help for commands"))
+
+    -- Set the scroll content height to fit everything
+    local totalHeight = -(footerDivY - 30)
+    content:SetHeight(totalHeight)
 
     -- ── Register ──────────────────────────────────────────────────────────────
     local category = Settings.RegisterCanvasLayoutCategory(frame, "Auto DPS Pot Macro")
     Settings.RegisterAddOnCategory(category)
     adpm.adpmCategoryID = category:GetID()
 
-    -- Populate status row immediately
     adpm.RefreshStatusRow()
 end
 
