@@ -78,4 +78,3 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE) - 
 ---
 
 *Developed for World of Warcraft: The Midnight (12.x)*
-```
