@@ -66,27 +66,9 @@ Never manually update your potion macros again. This World of Warcraft addon aut
 - **LibDBIcon Support** — Optional minimap button with drag positioning (falls back to native button if libraries unavailable)
 - **Lightweight** — Only processes bag updates when necessary; throttled to prevent performance impact
 
-## File Structure
-
-
-AutoDPSPotMacro/
-├── Bindings.lua        # Key binding localization
-├── Core/
-│   ├── Events.lua      # Event handling and throttling
-│   ├── Flasks.lua      # Flask definitions and logic
-│   ├── Items.lua       # PPItem class for inventory scanning
-│   ├── MacroEngine.lua # Macro creation and updates
-│   ├── Namespace.lua   # Addon initialization and defaults
-│   └── Potions.lua     # Potion definitions and logic
-├── UI/
-│   ├── MinimapButton.lua  # Minimap/LDB integration
-│   └── OptionsPanel.lua   # Settings panel UI
-└── AutoDPSPotMacro.toc    # Addon metadata
-
 
 ## Dependencies
 
-- **None required** — Works out of the box
 - **Optional:** LibDBIcon-1.0 and LibDataBroker-1.1 (for enhanced minimap button functionality)
 
 ## License
@@ -95,5 +77,5 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE) - 
 
 ---
 
-*Developed for World of Warcraft: The Midnight (11.x)*
+*Developed for World of Warcraft: The Midnight (12.x)*
 ```
