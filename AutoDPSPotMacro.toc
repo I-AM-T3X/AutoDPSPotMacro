@@ -1,0 +1,24 @@
+## Interface: 120000
+## Title: |cff00ccffAuto DPS Pot Macro|r
+## Notes: Automatically morphs your Flask and Potion macros to always use your best available quality.
+## Author: I_AM_T3X 
+## Version: 1.0.0
+## SavedVariables: ADPMDB
+## IconTexture: Interface\Icons\INV_Alchemy_Potion_05
+
+## OptionalDeps: LibDBIcon-1.0
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+Bindings.lua
+Core\Namespace.lua
+Core\Items.lua
+Core\Flasks.lua
+Core\Potions.lua
+Core\MacroEngine.lua
+Core\Events.lua
+UI\MinimapButton.lua
+UI\OptionsPanel.lua
