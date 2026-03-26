@@ -69,7 +69,7 @@ Never manually update your potion macros again. This World of Warcraft addon aut
 
 ## Dependencies
 
-- **Optional:** LibDBIcon-1.0 and LibDataBroker-1.1 (for enhanced minimap button functionality)
+- **Included:** LibDBIcon-1.0 and LibDataBroker-1.1 (for enhanced minimap button functionality)
 
 ## License
 
