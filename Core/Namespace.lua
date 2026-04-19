@@ -5,7 +5,7 @@
 
 local addonName, adpm = ...
 
-adpm.VERSION      = "1.0.1"
+adpm.VERSION      = "1.0.4"
 adpm.ADDON_NAME   = addonName
 adpm.MACRO_POTION = "ADPMPot"
 adpm.MACRO_FLASK  = "ADPMFlask"
