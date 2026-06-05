@@ -12,6 +12,7 @@ local flaskRadios  = {}
 local potionRadios = {}
 local statusFlaskText
 local statusPotionText
+local specHeaderText   -- FontString showing current spec name
 
 local function colorStr(hex, text)
     return "|cff" .. hex .. text .. "|r"
@@ -32,12 +33,29 @@ local function addHeader(parent, y, text)
     return fs
 end
 
+--- Returns a human-readable spec name for the current spec.
+local function getSpecLabel()
+    local specIndex = GetSpecialization()
+    if not specIndex then return "No Spec" end
+    local _, name, _, icon = GetSpecializationInfo(specIndex)
+    return name or "Unknown Spec"
+end
+
+--- Updates the spec header FontString to show the current spec.
+function adpm.RebuildSpecHeader()
+    if not specHeaderText then return end
+    specHeaderText:SetText(
+        colorStr("00ccff", "Auto DPS Pot Macro") ..
+        "  " .. colorStr("555555", "v" .. adpm.VERSION .. " · Midnight") ..
+        "   " .. colorStr("ffcc00", "[ " .. getSpecLabel() .. " ]")
+    )
+end
+
 function adpm.RefreshStatusRow()
     if not statusFlaskText then return end
 
-    -- CHANGED: ADPMDB -> ADPMCharDB
-    local flaskDef  = ADPMCharDB.selectedFlask  and adpm.GetFlaskDef(ADPMCharDB.selectedFlask)
-    local potionDef = ADPMCharDB.selectedPotion and adpm.GetPotionDef(ADPMCharDB.selectedPotion)
+    local flaskDef  = adpm.GetSelectedFlask()  and adpm.GetFlaskDef(adpm.GetSelectedFlask())
+    local potionDef = adpm.GetSelectedPotion() and adpm.GetPotionDef(adpm.GetSelectedPotion())
 
     local flaskID  = adpm.activeFlaskID
     local potionID = adpm.activePotionID
@@ -79,7 +97,23 @@ function adpm.RefreshStatusRow()
     statusPotionText:SetText(fmtItem(potionDef, potionID))
 end
 
-local function makeRadio(parent, x, y, prefix, key, def, radioTable, dbKey)
+--- Syncs all radio buttons to reflect the active spec's profile.
+--- Called after a spec switch so the panel shows the correct selection.
+function adpm.SyncRadiosToProfile()
+    local selFlask  = adpm.GetSelectedFlask()
+    local selPotion = adpm.GetSelectedPotion()
+
+    for k, btn in pairs(flaskRadios) do
+        btn:SetChecked(k == (selFlask or "__none"))
+    end
+    for k, btn in pairs(potionRadios) do
+        btn:SetChecked(k == (selPotion or "__none"))
+    end
+
+    adpm.RefreshStatusRow()
+end
+
+local function makeRadio(parent, x, y, prefix, key, def, radioTable, setter, getter)
     local btn = CreateFrame("CheckButton", nil, parent, "UIRadioButtonTemplate")
     btn:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
 
@@ -119,13 +153,11 @@ local function makeRadio(parent, x, y, prefix, key, def, radioTable, dbKey)
             other:SetChecked(false)
         end
         btn:SetChecked(true)
-        -- CHANGED: ADPMDB -> ADPMCharDB
-        ADPMCharDB[dbKey] = key
+        setter(key)
         adpm.UpdateMacros()
     end)
 
-    -- CHANGED: ADPMDB -> ADPMCharDB
-    btn:SetChecked(ADPMCharDB[dbKey] == key)
+    btn:SetChecked(getter() == key)
     radioTable[key] = btn
     return btn
 end
@@ -144,11 +176,19 @@ local function buildPanel()
 
     local p = content
 
-    local titleText = p:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    titleText:SetPoint("TOPLEFT", MARGIN, -MARGIN)
-    titleText:SetText(colorStr("00ccff", "Auto DPS Pot Macro") .. "  " .. colorStr("555555", "v" .. adpm.VERSION .. " · Midnight"))
+    -- Title + current spec label
+    specHeaderText = p:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    specHeaderText:SetPoint("TOPLEFT", MARGIN, -MARGIN)
+    specHeaderText:SetText(
+        colorStr("00ccff", "Auto DPS Pot Macro") ..
+        "  " .. colorStr("555555", "v" .. adpm.VERSION .. " · Midnight")
+    )
 
-    local statusY = -MARGIN - 28
+    local specNoteText = p:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    specNoteText:SetPoint("TOPLEFT", MARGIN, -MARGIN - 20)
+    specNoteText:SetText(colorStr("888888", "Settings save per specialization and switch automatically on spec change."))
+
+    local statusY = -MARGIN - 44
     addDivider(p, statusY)
 
     local statusLabel = p:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
@@ -181,7 +221,7 @@ local function buildPanel()
 
     local fy = flaskHeaderY - 22
     for _, def in ipairs(adpm.flaskDefs) do
-        makeRadio(p, INDENT, fy, "Flask", def.key, def, flaskRadios, "selectedFlask")
+        makeRadio(p, INDENT, fy, "Flask", def.key, def, flaskRadios, adpm.SetSelectedFlask, adpm.GetSelectedFlask)
         fy = fy - ROW_H
     end
 
@@ -194,12 +234,10 @@ local function buildPanel()
         noneBtn:SetScript("OnClick", function()
             for _, other in pairs(flaskRadios) do other:SetChecked(false) end
             noneBtn:SetChecked(true)
-            -- CHANGED: ADPMDB -> ADPMCharDB
-            ADPMCharDB.selectedFlask = nil
+            adpm.SetSelectedFlask(nil)
             adpm.UpdateMacros()
         end)
-        -- CHANGED: ADPMDB -> ADPMCharDB
-        noneBtn:SetChecked(ADPMCharDB.selectedFlask == nil)
+        noneBtn:SetChecked(adpm.GetSelectedFlask() == nil)
         flaskRadios["__none"] = noneBtn
         fy = fy - ROW_H
     end
@@ -212,7 +250,7 @@ local function buildPanel()
 
     local py = potionHeaderY - 22
     for _, def in ipairs(adpm.potionDefs) do
-        makeRadio(p, INDENT, py, "Potion", def.key, def, potionRadios, "selectedPotion")
+        makeRadio(p, INDENT, py, "Potion", def.key, def, potionRadios, adpm.SetSelectedPotion, adpm.GetSelectedPotion)
         py = py - ROW_H
     end
 
@@ -225,12 +263,10 @@ local function buildPanel()
         noneBtn:SetScript("OnClick", function()
             for _, other in pairs(potionRadios) do other:SetChecked(false) end
             noneBtn:SetChecked(true)
-            -- CHANGED: ADPMDB -> ADPMCharDB
-            ADPMCharDB.selectedPotion = nil
+            adpm.SetSelectedPotion(nil)
             adpm.UpdateMacros()
         end)
-        -- CHANGED: ADPMDB -> ADPMCharDB
-        noneBtn:SetChecked(ADPMCharDB.selectedPotion == nil)
+        noneBtn:SetChecked(adpm.GetSelectedPotion() == nil)
         potionRadios["__none"] = noneBtn
         py = py - ROW_H
     end
@@ -244,20 +280,16 @@ local function buildPanel()
     local chatCB = CreateFrame("CheckButton", nil, p, "InterfaceOptionsCheckButtonTemplate")
     chatCB:SetPoint("TOPLEFT", p, "TOPLEFT", INDENT, miscY - 22)
     chatCB.Text:SetText("Show chat notification when macros update")
-    -- CHANGED: ADPMDB -> ADPMCharDB
     chatCB:SetChecked(ADPMCharDB.showChatStatus)
     chatCB:SetScript("OnClick", function(self)
-        -- CHANGED: ADPMDB -> ADPMCharDB
         ADPMCharDB.showChatStatus = self:GetChecked()
     end)
 
     local minimapCB = CreateFrame("CheckButton", nil, p, "InterfaceOptionsCheckButtonTemplate")
     minimapCB:SetPoint("TOPLEFT", p, "TOPLEFT", INDENT, miscY - 50)
     minimapCB.Text:SetText("Hide minimap button")
-    -- CHANGED: ADPMDB -> ADPMCharDB
     minimapCB:SetChecked(ADPMCharDB.minimap.hide)
     minimapCB:SetScript("OnClick", function(self)
-        -- CHANGED: ADPMDB -> ADPMCharDB
         ADPMCharDB.minimap.hide = self:GetChecked()
         adpm.SetMinimapButtonVisible(not ADPMCharDB.minimap.hide)
     end)

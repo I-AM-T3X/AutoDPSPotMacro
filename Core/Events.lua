@@ -34,6 +34,7 @@ frame:RegisterEvent("BAG_UPDATE_DELAYED")
 frame:RegisterEvent("ITEM_COUNT_CHANGED")
 frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 frame:RegisterEvent("TRAIT_CONFIG_UPDATED")
+frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 
 frame:SetScript("OnEvent", function(self, event, arg1, ...)
     if event == "ADDON_LOADED" and arg1 == adpm.ADDON_NAME then
@@ -44,10 +45,30 @@ frame:SetScript("OnEvent", function(self, event, arg1, ...)
 
     if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
         adpm.inCombat = UnitAffectingCombat("player") == true
+        adpm.RefreshActiveSpec()
         if not adpm.inCombat then
             C_Timer.After(1.5, function()
                 adpm.UpdateMacros(true)
+                if adpm.RebuildSpecHeader then adpm.RebuildSpecHeader() end
+                adpm.ShowChangelogIfNew()
             end)
+        end
+        return
+    end
+
+    if event == "PLAYER_SPECIALIZATION_CHANGED" then
+        -- Spec changed: re-detect spec, rebuild options header, refresh macros
+        local changed = adpm.RefreshActiveSpec()
+        if changed then
+            if ADPMCharDB.showChatStatus then
+                local specName = select(2, GetSpecializationInfo(GetSpecialization())) or "Unknown"
+                print("|cff00ccff[AutoDPSPotMacro]|r Switched to |cffffcc00" .. specName .. "|r spec profile.")
+            end
+            if adpm.RebuildSpecHeader then adpm.RebuildSpecHeader() end
+            if adpm.SyncRadiosToProfile then adpm.SyncRadiosToProfile() end
+            if not adpm.inCombat then
+                adpm.UpdateMacros()
+            end
         end
         return
     end
@@ -93,18 +114,21 @@ SlashCmdList["ADPM"] = function(msg)
         print("|cff00ccff[AutoDPSPotMacro]|r Macros refreshed.")
 
     elseif cmd == "minimap" then
-        -- CHANGED: ADPMDB -> ADPMCharDB
-        ADPMCharDB.minimapHidden = not ADPMCharDB.minimapHidden
-        adpm.SetMinimapButtonVisible(not ADPMCharDB.minimapHidden)
-        print("|cff00ccff[AutoDPSPotMacro]|r Minimap button " .. (ADPMCharDB.minimapHidden and "hidden" or "shown") .. ".")
+        ADPMCharDB.minimap.hide = not ADPMCharDB.minimap.hide
+        adpm.SetMinimapButtonVisible(not ADPMCharDB.minimap.hide)
+        print("|cff00ccff[AutoDPSPotMacro]|r Minimap button " .. (ADPMCharDB.minimap.hide and "hidden" or "shown") .. ".")
+
+    elseif cmd == "changelog" or cmd == "changes" then
+        adpm.ShowChangelog()
 
     elseif cmd == "help" then
         print("|cff00ccff[AutoDPSPotMacro]|r Commands:")
-        print("  |cffcccccc/adpm|r           Open options")
-        print("  |cffcccccc/adpm status|r    Show current macro status")
-        print("  |cffcccccc/adpm update|r    Force macro refresh")
-        print("  |cffcccccc/adpm minimap|r   Toggle minimap button")
-        print("  |cffcccccc/adpm help|r      This message")
+        print("  |cffcccccc/adpm|r             Open options")
+        print("  |cffcccccc/adpm status|r      Show current macro status")
+        print("  |cffcccccc/adpm update|r      Force macro refresh")
+        print("  |cffcccccc/adpm minimap|r     Toggle minimap button")
+        print("  |cffcccccc/adpm changelog|r   Show version changelog")
+        print("  |cffcccccc/adpm help|r        This message")
     else
         print("|cff00ccff[AutoDPSPotMacro]|r Unknown command. Type |cffcccccc/adpm help|r for options.")
     end

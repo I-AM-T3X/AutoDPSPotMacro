@@ -50,8 +50,8 @@ end
 -- ─── Public API ───────────────────────────────────────────────────────────────
 
 function adpm.UpdateMacros(silent)
-    local flaskBest, flaskFallbacks = adpm.GetOwnedFlaskIDs(ADPMCharDB.selectedFlask)
-    local potionBest, potionFallbacks = adpm.GetOwnedPotionIDs(ADPMCharDB.selectedPotion)
+    local flaskBest, flaskFallbacks = adpm.GetOwnedFlaskIDs(adpm.GetSelectedFlask())
+    local potionBest, potionFallbacks = adpm.GetOwnedPotionIDs(adpm.GetSelectedPotion())
 
     local flaskChanged  = flaskBest  ~= adpm.activeFlaskID
     local potionChanged = potionBest ~= adpm.activePotionID
@@ -67,8 +67,8 @@ function adpm.UpdateMacros(silent)
     end
 
     if not silent and ADPMCharDB.showChatStatus and (flaskChanged or potionChanged) then
-        local flaskDef  = flaskBest  and adpm.GetFlaskDef(ADPMCharDB.selectedFlask)
-        local potionDef = potionBest and adpm.GetPotionDef(ADPMCharDB.selectedPotion)
+        local flaskDef  = flaskBest  and adpm.GetFlaskDef(adpm.GetSelectedFlask())
+        local potionDef = potionBest and adpm.GetPotionDef(adpm.GetSelectedPotion())
 
         local flaskName  = flaskDef  and ("|cff" .. flaskDef.color  .. flaskDef.label  .. "|r") or "|cffaaaaaa(none)|r"
         local potionName = potionDef and ("|cff" .. potionDef.color .. potionDef.label .. "|r") or "|cffaaaaaa(none)|r"
@@ -78,8 +78,8 @@ function adpm.UpdateMacros(silent)
 end
 
 function adpm.PrintStatus()
-    local flaskDef  = ADPMCharDB.selectedFlask  and adpm.GetFlaskDef(ADPMCharDB.selectedFlask)
-    local potionDef = ADPMCharDB.selectedPotion and adpm.GetPotionDef(ADPMCharDB.selectedPotion)
+    local flaskDef  = adpm.GetSelectedFlask()  and adpm.GetFlaskDef(adpm.GetSelectedFlask())
+    local potionDef = adpm.GetSelectedPotion() and adpm.GetPotionDef(adpm.GetSelectedPotion())
 
     local function fmt(def, activeID)
         if not def then return "|cffaaaaaa-- none selected --|r" end

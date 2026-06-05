@@ -42,9 +42,8 @@ function adpm.BuildMinimapButton()
             tooltip:AddLine("Right-click: Print status", 0.8, 0.8, 0.8)
             tooltip:AddLine(" ")
             
-            -- CHANGED: ADPMDB -> ADPMCharDB
-            local flaskDef  = ADPMCharDB.selectedFlask  and adpm.GetFlaskDef(ADPMCharDB.selectedFlask)
-            local potionDef = ADPMCharDB.selectedPotion and adpm.GetPotionDef(ADPMCharDB.selectedPotion)
+            local flaskDef  = adpm.GetSelectedFlask()  and adpm.GetFlaskDef(adpm.GetSelectedFlask())
+            local potionDef = adpm.GetSelectedPotion() and adpm.GetPotionDef(adpm.GetSelectedPotion())
             
             tooltip:AddDoubleLine(
                 "Flask:",
@@ -101,8 +100,8 @@ function adpm.BuildFallbackMinimapButton()
         GameTooltip:AddLine("Right-click: Print status", 0.8, 0.8, 0.8)
         GameTooltip:AddLine(" ")
         -- CHANGED: ADPMDB -> ADPMCharDB
-        local flaskDef  = ADPMCharDB.selectedFlask  and adpm.GetFlaskDef(ADPMCharDB.selectedFlask)
-        local potionDef = ADPMCharDB.selectedPotion and adpm.GetPotionDef(ADPMCharDB.selectedPotion)
+        local flaskDef  = adpm.GetSelectedFlask()  and adpm.GetFlaskDef(adpm.GetSelectedFlask())
+        local potionDef = adpm.GetSelectedPotion() and adpm.GetPotionDef(adpm.GetSelectedPotion())
         GameTooltip:AddDoubleLine(
             "Flask:",
             flaskDef and ("|cff" .. flaskDef.color .. flaskDef.label .. "|r") or "|cffaaaaaa--none--|r",
