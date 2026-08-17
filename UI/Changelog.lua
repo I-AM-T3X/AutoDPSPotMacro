@@ -1,5 +1,5 @@
 -- UI\Changelog.lua
--- Shows a changelog popup once per version (account-wide, via ADPMDB).
+-- Changelog data + a reusable renderer used by the Changelog settings page.
 -- To add notes for a future version, add an entry to CHANGELOG below.
 
 local addonName, adpm = ...
@@ -7,6 +7,47 @@ local addonName, adpm = ...
 -- ─── Changelog data ───────────────────────────────────────────────────────────
 -- Add newest entry at the TOP. Each entry: { version, lines[] }
 local CHANGELOG = {
+    {
+        version = "1.0.8",
+        lines = {
+            { text = "Restock tracking",                                                       tag = "new" },
+            { text = "Set Min/Max stock targets for your currently selected Flask and Potion on the main settings page.", tag = nil },
+            { text = "Restock trigger mode",                                                    tag = "new" },
+            { text = "Choose whether you're warned below Min (only when critically low) or below Max (any time you're not fully stocked).", tag = nil },
+            { text = "Dungeon/raid low-stock warning",                                          tag = "new" },
+            { text = "Get a popup entering a dungeon or raid if you're below your threshold. Can be turned off separately from restock tracking itself.", tag = nil },
+            { text = "Auction House shopping panel",                                            tag = "new" },
+            { text = "A draggable panel appears at the AH for whatever's low, with live prices and a real Buy button per item (this spends gold, so double-check the quantity shown before clicking).", tag = nil },
+            { text = "Readability",                                                              tag = "fix" },
+            { text = "Lightened the muted gray text used throughout Settings, which was hard to read against the dark background.", tag = nil },
+        },
+    },
+    {
+        version = "1.0.7",
+        lines = {
+            { text = "New potions: Liquid Luster and Alluring Nostrum",                       tag = "new" },
+            { text = "Both are now selectable on the Potion page, with crafted, Silver, Gold, and Fleeting tiers where available.", tag = nil  },
+            { text = "Nested settings tree",                                                  tag = "new" },
+            { text = "Options are now split into Flask, Potion, and Changelog pages under Auto DPS Pot Macro.", tag = nil  },
+            { text = "Changelog page",                                                        tag = "new" },
+            { text = "Added a Changelog page to Settings so you can see what's new without a separate popup.", tag = nil  },
+            { text = "Interface update",                                                      tag = "upkeep"  },
+            { text = "Added support for patch 12.1.0 (interface 120100).",                    tag = nil  },
+            { text = "Spec profile sync",                                                     tag = "fix" },
+            { text = "Flask/Potion selections could show a stale choice after zoning or a loading screen, even though the correct macros were still active behind the scenes.", tag = nil },
+            { text = "Selections now resync whenever your active spec is (re)detected, not just on an explicit spec change.", tag = nil },
+            { text = "Changelog display",                                                     tag = "fix" },
+            { text = "Divider lines no longer overlap wrapped text, and now appear consistently between every version entry.", tag = nil },
+            { text = "Settings layout",                                                       tag = "changed" },
+            { text = "Options (chat notifications, minimap toggle) now live on the main page instead of their own separate tab.", tag = nil },
+        },
+    },
+    {
+        version = "1.0.6",
+        lines = {
+            { text = "Updated TOC for patch 12.0.7 — Midnight: Revelations. No functional changes.", tag = "upkeep" },
+        },
+    },
     {
         version = "1.0.5",
         lines = {
@@ -24,74 +65,64 @@ local CHANGELOG = {
             { text = "If you run out of Gold pots mid-pull, Silver kicks in automatically.", tag = nil  },
         },
     },
+    {
+        version = "1.0.3",
+        lines = {
+            { text = "Dynamic Macro Icons",                                                                          tag = "fix" },
+            { text = "Changed #showtooltip item:ID to bare #showtooltip so the macro icon and tooltip update dynamically as you consume items mid-combat.", tag = nil },
+            { text = "Previously the icon locked to the first item ID and greyed out when depleted, even though the fallback /use lines still worked.", tag = nil },
+        },
+    },
+    {
+        version = "1.0.2",
+        lines = {
+            { text = "Combat-Safe Fallback Macros",                                                                  tag = "new" },
+            { text = "Macros now include all owned quality variants as fallback /use lines.",                        tag = nil  },
+            { text = "If you run out of Fleeting potions mid-fight, the macro automatically falls back to Crafted versions without needing a mid-combat update.", tag = nil },
+        },
+    },
+    {
+        version = "1.0.1",
+        lines = {
+            { text = "Character-Specific Storage",                                                                   tag = "fix" },
+            { text = "All settings (selected flask/potion, minimap position, chat notifications) now save per-character instead of account-wide.", tag = nil },
+            { text = "This lets different characters keep different consumable preferences without conflicts.",      tag = nil },
+        },
+    },
+    {
+        version = "1.0.0",
+        lines = {
+            { text = "Initial Release",                                                                              tag = "new" },
+            { text = "Support for all 4 flask types (Blood Knights, Shattered Sun, Magisters, Thalassian Resistance).", tag = nil },
+            { text = "Support for all 5 combat potion types (Recklessness, Draught, Light's Potential, Zealotry, Mana).", tag = nil },
+            { text = "Smart quality priority: Fleeting Gold > Fleeting Silver > Crafted Gold > Crafted Silver.",      tag = nil },
+            { text = "Automatic macro creation and updates (ADPMFlask, ADPMPot).",                                    tag = nil },
+            { text = "Modern Settings panel with scrollable interface.",                                              tag = nil },
+            { text = "Minimap button with LibDBIcon integration.",                                                    tag = nil },
+            { text = "Key binding support for quick usage.",                                                          tag = nil },
+            { text = "Combat-aware throttling (0.5s delay, combat lockdown).",                                        tag = nil },
+            { text = "Real-time status display showing active item quality and counts.",                             tag = nil },
+            { text = "Migration support for minimap position data.",                                                  tag = nil },
+        },
+    },
 }
 
 -- ─── Colours ──────────────────────────────────────────────────────────────────
-local C_TITLE   = "00ccff"
 local C_VERSION = "ffcc00"
 local C_NEW     = "44ff88"
 local C_FIX     = "ff9944"
+local C_CHANGED = "66aaff"
+local C_REMOVED = "ff5555"
+local C_UPKEEP  = "cc88ff"
 local C_BODY    = "dddddd"
-local C_DIM     = "888888"
 
 local function col(hex, t) return "|cff"..hex..t.."|r" end
 
--- ─── Layout constants ─────────────────────────────────────────────────────────
-local FRAME_W  = 440
-local FRAME_H  = 360
-local PAD      = 16
-local CONTENT_W = FRAME_W - PAD * 2 - 20  -- 20 for scrollbar
-
--- ─── Frame (built once) ───────────────────────────────────────────────────────
-local popup
-
-local function buildPopup()
-    -- Root: use the high-quality ButtonFrameTemplate which gives us the
-    -- Dragonflight/Midnight styled stone border + proper opaque background.
-    popup = CreateFrame("Frame", "ADPMChangelogFrame", UIParent, "ButtonFrameTemplate")
-    popup:SetSize(FRAME_W, FRAME_H)
-    popup:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
-    popup:SetFrameStrata("DIALOG")
-    popup:SetMovable(true)
-    popup:EnableMouse(true)
-    popup:RegisterForDrag("LeftButton")
-    popup:SetScript("OnDragStart", popup.StartMoving)
-    popup:SetScript("OnDragStop",  popup.StopMovingOrSizing)
-    popup:Hide()
-
-    -- Set the portrait icon using SetPortraitToTexture if available,
-    -- otherwise manually texture the portrait frame.
-    if popup.PortraitContainer then
-        local portrait = _G[popup:GetName() .. "Portrait"]
-        if portrait then
-            portrait:SetTexture("Interface\\Icons\\INV_Alchemy_Potion_05")
-        else
-            -- Fallback: create a texture directly in the container
-            local tex = popup.PortraitContainer:CreateTexture(nil, "ARTWORK")
-            tex:SetTexture("Interface\\Icons\\INV_Alchemy_Potion_05")
-            tex:SetPoint("CENTER", popup.PortraitContainer, "CENTER", 0, 0)
-            tex:SetSize(60, 60)
-        end
-    end
-    popup.TitleContainer.TitleText:SetText(col(C_TITLE, "Auto DPS Pot Macro") .. "  —  What's New")
-
-    -- Wire the built-in X button to dismiss + save seen version
-    popup.CloseButton:SetScript("OnClick", function()
-        if not ADPMDB then ADPMDB = {} end
-        ADPMDB.lastSeenVersion = adpm.VERSION
-        popup:Hide()
-    end)
-
-    -- ── Scroll frame ──────────────────────────────────────────────────────────
-    local sf = CreateFrame("ScrollFrame", "ADPMChangelogScroll", popup, "UIPanelScrollFrameTemplate")
-    sf:SetPoint("TOPLEFT",     popup.Inset, "TOPLEFT",     8,    -8)
-    sf:SetPoint("BOTTOMRIGHT", popup.Inset, "BOTTOMRIGHT", -(8+20), 8)
-
-    local content = CreateFrame("Frame", nil, sf)
-    content:SetWidth(CONTENT_W)
-    sf:SetScrollChild(content)
-
-    -- ── Populate ──────────────────────────────────────────────────────────────
+-- ─── Reusable list builder ─────────────────────────────────────────────────────
+--- Populates `content` (any Frame) with the full changelog, word-wrapped to `width`.
+--- Used by the Changelog settings subcategory.
+--- @return number totalHeight The height content should be set to.
+function adpm.BuildChangelogList(content, width)
     local y = -4
     for i, entry in ipairs(CHANGELOG) do
         -- Version header
@@ -102,15 +133,21 @@ local function buildPopup()
 
         for _, line in ipairs(entry.lines) do
             local fs = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-            fs:SetWidth(CONTENT_W - 8)
+            fs:SetWidth(width - 8)
             fs:SetJustifyH("LEFT")
             fs:SetWordWrap(true)
 
             local prefix = ""
             if line.tag == "new" then
-                prefix = col(C_NEW,  "[New] ")
+                prefix = col(C_NEW,     "[New] ")
             elseif line.tag == "fix" then
-                prefix = col(C_FIX,  "[Fix] ")
+                prefix = col(C_FIX,     "[Fix] ")
+            elseif line.tag == "changed" then
+                prefix = col(C_CHANGED, "[Changed] ")
+            elseif line.tag == "removed" then
+                prefix = col(C_REMOVED, "[Removed] ")
+            elseif line.tag == "upkeep" then
+                prefix = col(C_UPKEEP,  "[Upkeep] ")
             end
 
             fs:SetText(prefix .. col(C_BODY, line.text))
@@ -118,55 +155,19 @@ local function buildPopup()
 
             -- measure height after setting text+width
             fs:SetSpacing(2)
-            y = y - fs:GetStringHeight() - 6
+            y = y - fs:GetStringHeight() - 20
         end
 
-        -- Divider between versions (skip after last)
-        if i < #CHANGELOG then
-            y = y - 6
-            local div = content:CreateTexture(nil, "ARTWORK")
-            div:SetColorTexture(0.4, 0.35, 0.1, 0.6)   -- subtle gold rule
-            div:SetSize(CONTENT_W, 1)
-            div:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
-            y = y - 14
-        end
+        -- Divider between versions
+        y = y - 8
+        local div = content:CreateTexture(nil, "ARTWORK")
+        div:SetColorTexture(0.4, 0.35, 0.1, 0.6)   -- subtle gold rule
+        div:SetSize(width, 1)
+        div:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
+        y = y - 20
     end
 
-    content:SetHeight(math.abs(y) + 16)
-
-    -- ── Bottom buttons ────────────────────────────────────────────────────────
-    -- Sit in the grey footer strip below popup.Inset, centered on the frame.
-    local gotItBtn = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
-    gotItBtn:SetSize(120, 26)
-    gotItBtn:SetPoint("CENTER", popup, "BOTTOM", 64, 14)    gotItBtn:SetText("Got it!")
-    gotItBtn:SetScript("OnClick", function()
-        if not ADPMDB then ADPMDB = {} end
-        ADPMDB.lastSeenVersion = adpm.VERSION
-        popup:Hide()
-    end)
-
-    local optBtn = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
-    optBtn:SetSize(120, 26)
-    optBtn:SetPoint("CENTER", popup, "BOTTOM", -64, 14)
-    optBtn:SetText("Open Options")
-    optBtn:SetScript("OnClick", function()
-        if not ADPMDB then ADPMDB = {} end
-        ADPMDB.lastSeenVersion = adpm.VERSION
-        popup:Hide()
-        Settings.OpenToCategory(adpm.adpmCategoryID)
-    end)
-end
-
--- ─── Public API ───────────────────────────────────────────────────────────────
-
-function adpm.ShowChangelogIfNew()
-    if not ADPMDB then ADPMDB = {} end
-    if ADPMDB.lastSeenVersion == adpm.VERSION then return end
-    if not popup then buildPopup() end
-    popup:Show()
-end
-
-function adpm.ShowChangelog()
-    if not popup then buildPopup() end
-    popup:Show()
+    local totalHeight = math.abs(y) + 16
+    content:SetHeight(totalHeight)
+    return totalHeight
 end

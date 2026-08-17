@@ -107,5 +107,5 @@ function adpm.PrintStatus()
     print("  Flask : " .. fmt(flaskDef, adpm.activeFlaskID))
     print("  Potion: " .. fmt(potionDef, adpm.activePotionID))
     print("  Macros: |cffcccccc" .. adpm.MACRO_FLASK .. "|r  |cffcccccc" .. adpm.MACRO_POTION .. "|r")
-    print("  |cff888888(Fallbacks enabled: macros work even if you run out of the best quality mid-combat)|r")
+    print("  |cffaaaaaa(Fallbacks enabled: macros work even if you run out of the best quality mid-combat)|r")
 end

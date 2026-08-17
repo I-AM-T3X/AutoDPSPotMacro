@@ -49,6 +49,24 @@ adpm.potionDefs = {
         craftedIDs  = { 241301, 241300 },
         fleetingIDs = { 245917, 245916 },
     },
+    {
+        key         = "PotionLiquidLuster",
+        label       = "Liquid Luster",
+        stat        = "Stacking Versatility (30s)",
+        color       = "22ccaa",
+        desc        = "Applies a Versatility buff every 6s for 30s, stacking up to 5 times. No downside.",
+        craftedIDs  = { 271886, 271887 },
+        fleetingIDs = { 274763, 274764 },
+    },
+    {
+        key         = "PotionAlluringNostrum",
+        label       = "Alluring Nostrum",
+        stat        = "Shadow damage proc — stacking snare",
+        color       = "8800cc",
+        desc        = "Chance to deal Shadow damage on your abilities. Downside: stacking movement slow, up to 5 times.",
+        craftedIDs  = { 271889, 271890 },
+        fleetingIDs = { 274765 },
+    },
 }
 
 for _, def in ipairs(adpm.potionDefs) do
